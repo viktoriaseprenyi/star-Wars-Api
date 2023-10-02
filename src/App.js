@@ -1,22 +1,47 @@
-import PeopleList from "./components/PeopleList";
-import { useState, useEffect } from "react";
+import { useState } from 'react';
+
+import { PeopleList } from './components/PeopleList';
+import { useFetchCharacters } from './hooks/use-fetch-characters';
+import { enhanceCharacter } from './utils/enhance-character';
+import { getFavouritesFromLocaleStore } from './utils/get-favourites-from-local-store';
 
 function App() {
-    const [starWarsCharacters, setStarWarsCharacters] = useState([]);
-    console.log(starWarsCharacters);
+  const { errorMessage, isLoading, starWarsCharacters } = useFetchCharacters();
+  const [favourites, setFavourites] = useState(getFavouritesFromLocaleStore());
 
-    useEffect(() => {
-        async function fetchingSwCharacters() {
-            let res = await fetch('https://swapi.dev/api/people/?format=json');
-            let data = await res.json();
-            setStarWarsCharacters(data.results);
-        }
-        fetchingSwCharacters();
-    }, [])
+  const enhancedStarWarsCharacters = starWarsCharacters.map(
+    enhanceCharacter(favourites)
+  );
 
-    return <div>
-        <PeopleList starWarsChars={starWarsCharacters} />
+  const handleToggleFavourite = (name) => {
+    const newFavourites = favourites.includes(name)
+      ? favourites.filter((fav) => fav !== name)
+      : [...favourites, name];
+
+    localStorage.setItem('favourites', newFavourites);
+    setFavourites(newFavourites);
+  };
+
+  return (
+    <div>
+      {errorMessage && (
+        <div className="p-8">
+          <p className="text-white text-center">{errorMessage}</p>
+        </div>
+      )}
+
+      {!errorMessage && isLoading ? (
+        <div className="p-8">
+          <p className="text-white text-center">Loading...</p>
+        </div>
+      ) : (
+        <PeopleList
+          starWarsChars={enhancedStarWarsCharacters}
+          handleToggleFavourite={handleToggleFavourite}
+        />
+      )}
     </div>
+  );
 }
 
 export default App;
